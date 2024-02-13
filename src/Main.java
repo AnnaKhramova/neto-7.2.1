@@ -22,35 +22,38 @@ public class Main {
         });
         thread.start();;
 
+    public static void main(String[] args) throws InterruptedException {
+        List<Thread> threads = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
-            new Thread(() -> {
+            Thread tread = new Thread(() -> {
+                String str = generateRoute("RLRFR", 100);
+                int count = str.length() - str.replace(String.valueOf('R'), "").length();
                 synchronized (sizeToFreq) {
-                    String str = generateRoute("RLRFR", 100);
-                    int count = str.length() - str.replace(String.valueOf('R'), "").length();
-                    System.out.println(str + " - " + count);
                     if (sizeToFreq.containsKey(count)) {
                         sizeToFreq.computeIfPresent(count, (k, v) -> ++v);
                     } else {
                         sizeToFreq.put(count, 1);
                     }
-                    sizeToFreq.notify();
                 }
-            }).start();
+                System.out.println(str + " - " + count);
+            });
+            threads.add(tread);
         }
-
-        while (true) { //не поняла как по-другому дождаться когда все потоки закончат работу
-            synchronized (sizeToFreq) {
-                if (sizeToFreq.values().stream().reduce(0, (a, b) -> a + b) == 1000) {
-                    thread.interrupt();
-                    Optional<Integer> max = sizeToFreq.keySet().stream().max(Comparator.comparingInt(sizeToFreq::get));
-                    System.out.println("Самое частое количество повторений " + max.get() +
-                            " (встретилось " + sizeToFreq.get(max.get()) + " раз)\n" +
-                            "Другие размеры:");
-                    sizeToFreq.remove(max.get());
-                    sizeToFreq.keySet()
-                            .forEach(k -> System.out.println("- " + k + " (" + sizeToFreq.get(k) + " раз)"));
-                    break;
-                }
+        for (Thread thread : threads) {
+            thread.start();
+        }
+        for (Thread thread : threads) {
+            thread.join();
+        }
+        synchronized (sizeToFreq) {
+            if (sizeToFreq.values().stream().reduce(0, (a, b) -> a + b) == 1000) {
+                Optional<Integer> max = sizeToFreq.keySet().stream().max(Comparator.comparingInt(sizeToFreq::get));
+                System.out.println("Самое частое количество повторений " + max.get() +
+                        " (встретилось " + sizeToFreq.get(max.get()) + " раз)\n" +
+                        "Другие размеры:");
+                sizeToFreq.remove(max.get());
+                sizeToFreq.keySet()
+                        .forEach(k -> System.out.println("- " + k + " (" + sizeToFreq.get(k) + " раз)"));
             }
         }
     }
