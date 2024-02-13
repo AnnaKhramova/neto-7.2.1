@@ -4,25 +4,21 @@ public class Main {
 
     public static final Map<Integer, Integer> sizeToFreq = new HashMap<>();
 
-    public static void main(String[] args) {
-        // почему-то печатает только два раза: в начале и в конце программы
-        Thread thread = new Thread(() -> {
+    public static void main(String[] args) throws InterruptedException {
+        Thread printThread = new Thread(() -> {
             while (!Thread.interrupted()) {
                 synchronized (sizeToFreq) {
                     try {
                         sizeToFreq.wait();
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
+                    } catch (InterruptedException e) {}
                     Optional<Integer> max = sizeToFreq.keySet().stream().max(Comparator.comparingInt(sizeToFreq::get));
                     System.out.println("Самое частое количество повторений " + max.get() +
                             " (встретилось " + sizeToFreq.get(max.get()) + " раз)");
                 }
             }
         });
-        thread.start();;
+        printThread.start();;
 
-    public static void main(String[] args) throws InterruptedException {
         List<Thread> threads = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             Thread tread = new Thread(() -> {
@@ -34,6 +30,7 @@ public class Main {
                     } else {
                         sizeToFreq.put(count, 1);
                     }
+                    sizeToFreq.notify();
                 }
                 System.out.println(str + " - " + count);
             });
@@ -45,6 +42,7 @@ public class Main {
         for (Thread thread : threads) {
             thread.join();
         }
+        printThread.interrupt();
         synchronized (sizeToFreq) {
             if (sizeToFreq.values().stream().reduce(0, (a, b) -> a + b) == 1000) {
                 Optional<Integer> max = sizeToFreq.keySet().stream().max(Comparator.comparingInt(sizeToFreq::get));
